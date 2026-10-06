@@ -1,6 +1,8 @@
 // lib/pages/halaman_layanan.dart
 // Tanpa Scaffold: tampil di dalam Scaffold milik KerangkaNavigasi.
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/favorit_model.dart';
 import '../navigation/app_routes.dart';
 
 class HalamanLayanan extends StatefulWidget {
@@ -96,11 +98,8 @@ class _HalamanLayananState extends State<HalamanLayanan> {
       separatorBuilder: (context, indeks) => const Divider(height: 1),
       itemBuilder: (context, indeks) {
         final layanan = daftar[indeks];
-        return ListTile(
-          leading: const Icon(Icons.article_outlined),
-          title: Text(layanan['nama']!),
-          subtitle: Text(layanan['dinas']!),
-          trailing: const Icon(Icons.chevron_right),
+        return _ItemLayanan(
+          layanan: layanan,
           onTap: () => _bukaRincian(layanan),
         );
       },
@@ -130,6 +129,53 @@ class _HalamanLayananState extends State<HalamanLayanan> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// Satu baris layanan dengan ikon bintang favorit.
+// Dibuat sebagai widget sendiri agar context.watch hanya membangun ulang
+// baris ini ketika status favoritnya berubah.
+class _ItemLayanan extends StatelessWidget {
+  const _ItemLayanan({required this.layanan, required this.onTap});
+
+  final Map<String, String> layanan;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final nama = layanan['nama']!;
+
+    // watch: warna/bentuk bintang harus mengikuti status favorit.
+    final favorit = context.watch<FavoritModel>().apakahFavorit(nama);
+
+    return ListTile(
+      leading: const Icon(Icons.article_outlined),
+      title: Text(nama),
+      subtitle: Text(layanan['dinas']!),
+      onTap: onTap,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: favorit ? 'Batalkan favorit' : 'Tandai favorit',
+            icon: Icon(
+              favorit ? Icons.star : Icons.star_border,
+              color: favorit ? Colors.amber.shade700 : null,
+            ),
+            onPressed: () {
+              // read: di dalam callback hanya memanggil operasi.
+              final model = context.read<FavoritModel>();
+              if (favorit) {
+                model.batalTandai(nama);
+              } else {
+                model.tandai(nama);
+              }
+            },
+          ),
+          const Icon(Icons.chevron_right),
         ],
       ),
     );
